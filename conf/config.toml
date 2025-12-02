@@ -1,0 +1,5 @@
+[elastic]
+Host = "10.224.201.42"
+Port = 9200
+Author = "sf"
+Project = "es_test"
