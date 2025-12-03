@@ -39,7 +39,7 @@ func (h *UserHandler) registerRouter() {
 	{
 		u.POST("/create", h.Create)
 		u.PUT("/update", h.Update)
-		//u.DELETE("/delete", h.Delete)
+		u.DELETE("/delete", h.Delete)
 		//u.GET("/info", h.MGet)
 		//u.POST("/search", h.Search)
 	}
@@ -79,6 +79,26 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 
 	if err := h.service.BatchUpdate(c, users); err != nil {
+		c.JSON(http.StatusOK, gin.H{"code": 1000, "msg": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "success"})
+}
+
+func (h *UserHandler) Delete(c *gin.Context) {
+	users := make([]*model.UserEs, 0)
+
+	if err := c.ShouldBindJSON(&users); err != nil {
+		c.JSON(http.StatusOK, gin.H{"code": 1000, "msg": "Invalid argument"})
+		return
+	}
+
+	if len(users) == 0 {
+		c.JSON(http.StatusOK, gin.H{"code": 1000, "msg": "There is no users to delete"})
+		return
+	}
+
+	if err := h.service.BatchDel(c, users); err != nil {
 		c.JSON(http.StatusOK, gin.H{"code": 1000, "msg": err.Error()})
 		return
 	}

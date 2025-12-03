@@ -23,3 +23,8 @@ func (s *UserService) BatchAdd(ctx context.Context, user []*model.UserEs) error 
 func (s *UserService) BatchUpdate(ctx context.Context, user []*model.UserEs) error {
 	return s.es.BatchUpdate(ctx, user)
 }
+
+// BatchDel
+func (s *UserService) BatchDel(ctx context.Context, user []*model.UserEs) error {
+	return s.es.BatchDel(ctx, user)
+}

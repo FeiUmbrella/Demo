@@ -174,3 +174,55 @@ func (userEs *UserES) batchUpdate(ctx context.Context, user []*model.UserEs) err
 	}
 	return nil
 }
+
+// BatchDel 批量删除
+func (userEs *UserES) BatchDel(ctx context.Context, user []*model.UserEs) error {
+	var err error
+	for _ = range esRetryLimit {
+		if err = userEs.batchDel(ctx, user); err != nil {
+			fmt.Printf("es batchDel failed err is %s\n", err)
+			continue
+		}
+		return err
+	}
+	return err
+}
+
+// batchDel 批量删除
+func (userEs *UserES) batchDel(ctx context.Context, user []*model.UserEs) error {
+	req := userEs.client.Bulk().Index(userEs.index)
+	for _, u := range user {
+		u.UpdateTime = uint64(time.Now().UnixMilli())
+
+		// 删除单个文档的索引请求：
+		// 将用户ID转换为字符串作为文档ID进行查找删除
+		doc := elastic.NewBulkDeleteRequest().Id(strconv.FormatUint(u.ID, 10))
+		// 将单个文档请求添加到批量请求中
+		req.Add(doc)
+	}
+
+	// req请求中没有要进行的操作
+	if req.NumberOfActions() == 0 {
+		return nil
+	}
+	// 执行批量请求到es中
+	res, err := req.Do(ctx)
+	if err != nil {
+		return err
+	}
+
+	// 任何子请求失败，该 `errors` 标志被设置为 `true` ，并且在相应的请求报告出错误明细
+	if !res.Errors {
+		return nil
+	}
+	for _, it := range res.Failed() {
+		if it.Error == nil {
+			continue
+		}
+		return &elastic.Error{
+			Status:  it.Status,
+			Details: it.Error,
+		}
+	}
+	return nil
+}
