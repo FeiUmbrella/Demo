@@ -41,7 +41,7 @@ func (h *UserHandler) registerRouter() {
 		u.PUT("/update", h.Update)
 		u.DELETE("/delete", h.Delete)
 		//u.GET("/info", h.MGet)
-		//u.POST("/search", h.Search)
+		u.POST("/search", h.Search)
 	}
 }
 
@@ -103,4 +103,20 @@ func (h *UserHandler) Delete(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "success"})
+}
+
+// Search 查找符合条件的文档
+func (h *UserHandler) Search(c *gin.Context) {
+	req := model.SearchReq{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, gin.H{"code": 1000, "msg": "Invalid argument"})
+		return
+	}
+
+	res, err := h.service.Search(c, &req)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"code": 1000, "msg": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "success", "data": res})
 }

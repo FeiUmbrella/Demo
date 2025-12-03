@@ -5,6 +5,7 @@ import (
 	"es_test/conf"
 	"es_test/model"
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -225,4 +226,39 @@ func (userEs *UserES) batchDel(ctx context.Context, user []*model.UserEs) error 
 		}
 	}
 	return nil
+}
+
+func (userEs *UserES) Search(ctx context.Context, filter *model.EsSearch) ([]*model.UserEs, error) {
+	boolQuery := elastic.NewBoolQuery()
+	boolQuery.Must(filter.MustQuery...)
+	boolQuery.MustNot(filter.MustNotQuery...)
+	boolQuery.Should(filter.ShouldQuery...)
+	boolQuery.Filter(filter.Filters...)
+
+	// 当should不为空，保证保证至少匹配should中的一项
+	if len(filter.MustQuery) == 0 && len(filter.MustNotQuery) == 0 && len(filter.MustNotQuery) != 0 {
+		boolQuery.MinimumShouldMatch("1")
+	}
+
+	service := userEs.client.Search().
+		Index(userEs.index).
+		Query(boolQuery).
+		SortBy(filter.Sorters...).
+		From(filter.From).
+		Size(filter.Size)
+	resp, err := service.Do(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.TotalHits() == 0 {
+		return nil, nil
+	}
+
+	userEss := make([]*model.UserEs, 0)
+	for _, e := range resp.Each(reflect.TypeOf(&model.UserEs{})) {
+		us := e.(*model.UserEs)
+		userEss = append(userEss, us)
+	}
+	return userEss, nil
 }

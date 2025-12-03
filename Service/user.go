@@ -28,3 +28,7 @@ func (s *UserService) BatchUpdate(ctx context.Context, user []*model.UserEs) err
 func (s *UserService) BatchDel(ctx context.Context, user []*model.UserEs) error {
 	return s.es.BatchDel(ctx, user)
 }
+
+func (s *UserService) Search(ctx context.Context, req *model.SearchReq) ([]*model.UserEs, error) {
+	return s.es.Search(ctx, req.ToFilter())
+}
