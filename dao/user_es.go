@@ -262,3 +262,29 @@ func (userEs *UserES) Search(ctx context.Context, filter *model.EsSearch) ([]*mo
 	}
 	return userEss, nil
 }
+
+// MGet 查询传入的多个id来查询符合的文档
+func (userEs *UserES) MGet(ctx context.Context, IDs []uint64) (userEsRes []*model.UserEs, err error) {
+	userEsRes = make([]*model.UserEs, 0, len(IDs))
+	idStr := make([]string, len(IDs))
+	for i, id := range IDs {
+		idStr[i] = strconv.FormatUint(id, 10)
+	}
+	resp, err := userEs.client.Search(userEs.index).
+		Query(elastic.NewIdsQuery().Ids(idStr...)).
+		Size(len(IDs)).
+		Do(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.TotalHits() == 0 {
+		return nil, nil
+	}
+	for _, e := range resp.Each(reflect.TypeOf(&model.UserEs{})) {
+		us := e.(*model.UserEs)
+		userEsRes = append(userEsRes, us)
+	}
+	return userEsRes, nil
+}

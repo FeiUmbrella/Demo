@@ -5,6 +5,8 @@ import (
 	"es_test/model"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,7 +42,7 @@ func (h *UserHandler) registerRouter() {
 		u.POST("/create", h.Create)
 		u.PUT("/update", h.Update)
 		u.DELETE("/delete", h.Delete)
-		//u.GET("/info", h.MGet)
+		u.GET("/info", h.MGet)
 		u.POST("/search", h.Search)
 	}
 }
@@ -118,5 +120,23 @@ func (h *UserHandler) Search(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"code": 1000, "msg": err.Error()})
 		return
 	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "success", "data": res})
+}
+
+// MGet 查询传入的多个id来查询符合的文档
+func (h *UserHandler) MGet(c *gin.Context) {
+	ids := c.Query("id")
+	IDs := make([]uint64, 0)
+	for _, id := range strings.Split(ids, ",") {
+		t, _ := strconv.ParseUint(id, 10, 64)
+		IDs = append(IDs, t)
+	}
+
+	res, err := h.service.MGet(c, IDs)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"code": 1000, "msg": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "success", "data": res})
 }
