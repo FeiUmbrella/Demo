@@ -47,12 +47,17 @@ func (h *UserHandler) registerRouter() {
 
 func (h *UserHandler) Create(c *gin.Context) {
 	users := make([]*model.UserEs, 0)
-	user := model.UserEs{}
-	if err := c.ShouldBindJSON(&user); err != nil {
+
+	if err := c.ShouldBindJSON(&users); err != nil {
 		c.JSON(http.StatusOK, gin.H{"code": 1000, "msg": "Invalid argument"})
 		return
 	}
-	users = append(users, &user)
+
+	if len(users) == 0 {
+		c.JSON(http.StatusOK, gin.H{"code": 1000, "msg": "Users is empty"})
+		return
+	}
+
 	if err := h.service.BatchAdd(c, users); err != nil {
 		c.JSON(http.StatusOK, gin.H{"code": 1000, "msg": err.Error()})
 		return
