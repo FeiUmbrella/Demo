@@ -121,3 +121,56 @@ func (userEs *UserES) batchAdd(ctx context.Context, user []*model.UserEs) error 
 	}
 	return nil
 }
+
+// BatchUpdate 批量修改
+func (userEs *UserES) BatchUpdate(ctx context.Context, user []*model.UserEs) error {
+	var err error
+	for _ = range esRetryLimit {
+		if err = userEs.batchUpdate(ctx, user); err != nil {
+			fmt.Printf("es batchUpdate failed err is %s\n", err)
+			continue
+		}
+		return err
+	}
+	return err
+}
+
+// batchUpdate 批量修改
+func (userEs *UserES) batchUpdate(ctx context.Context, user []*model.UserEs) error {
+	req := userEs.client.Bulk().Index(userEs.index)
+	for _, u := range user {
+		u.UpdateTime = uint64(time.Now().UnixMilli())
+
+		// 更新单个文档的索引请求：
+		// 1. 将用户ID转换为字符串作为文档ID
+		// 2. 将用户对象u作为文档内容
+		doc := elastic.NewBulkUpdateRequest().Id(strconv.FormatUint(u.ID, 10)).Doc(u)
+		// 将单个文档请求添加到批量请求中
+		req.Add(doc)
+	}
+
+	// req请求中没有要进行的操作
+	if req.NumberOfActions() == 0 {
+		return nil
+	}
+	// 执行批量请求到es中
+	res, err := req.Do(ctx)
+	if err != nil {
+		return err
+	}
+
+	// 任何子请求失败，该 `errors` 标志被设置为 `true` ，并且在相应的请求报告出错误明细
+	if !res.Errors {
+		return nil
+	}
+	for _, it := range res.Failed() {
+		if it.Error == nil {
+			continue
+		}
+		return &elastic.Error{
+			Status:  it.Status,
+			Details: it.Error,
+		}
+	}
+	return nil
+}

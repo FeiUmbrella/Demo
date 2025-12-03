@@ -19,3 +19,7 @@ func NewUserService(es *dao.UserES) *UserService {
 func (s *UserService) BatchAdd(ctx context.Context, user []*model.UserEs) error {
 	return s.es.BatchAdd(ctx, user)
 }
+
+func (s *UserService) BatchUpdate(ctx context.Context, user []*model.UserEs) error {
+	return s.es.BatchUpdate(ctx, user)
+}
